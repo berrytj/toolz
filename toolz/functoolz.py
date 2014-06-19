@@ -1,3 +1,4 @@
+import time
 from functools import reduce, partial
 import inspect
 import operator
@@ -220,7 +221,7 @@ class curry(object):
 
 
 @curry
-def memoize(func, cache=None, key=None):
+def memoize(func, cache=None, key=None, ttl=None):
     """ Cache a function's result for speedy future evaluation
 
     Considerations:
@@ -259,6 +260,8 @@ def memoize(func, cache=None, key=None):
     if cache is None:
         cache = {}
 
+    expire_at = {'value': time.time() + ttl}
+
     try:
         spec = inspect.getargspec(func)
         may_have_kwargs = bool(not spec or spec.keywords or spec.defaults)
@@ -285,10 +288,11 @@ def memoize(func, cache=None, key=None):
         except TypeError:
             raise TypeError("Arguments to memoized function must be hashable")
 
-        if in_cache:
+        if time.time() < expire_at['value'] and in_cache:
             return cache[k]
         else:
             result = func(*args, **kwargs)
+            expire_at['value'] = time.time() + ttl
             cache[k] = result
             return result
 
