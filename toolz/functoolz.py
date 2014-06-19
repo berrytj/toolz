@@ -273,6 +273,10 @@ def memoize(func, cache=None, key=None, ttl=None):
         is_unary = False
 
     def memof(*args, **kwargs):
+        if time.time() > expire_at['value']:
+            cache.clear()
+            expire_at['value'] = time.time() + ttl
+
         try:
             if key is not None:
                 k = key(args, kwargs)
@@ -288,11 +292,10 @@ def memoize(func, cache=None, key=None, ttl=None):
         except TypeError:
             raise TypeError("Arguments to memoized function must be hashable")
 
-        if time.time() < expire_at['value'] and in_cache:
+        if in_cache:
             return cache[k]
         else:
             result = func(*args, **kwargs)
-            expire_at['value'] = time.time() + ttl
             cache[k] = result
             return result
 
