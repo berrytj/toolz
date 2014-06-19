@@ -260,7 +260,8 @@ def memoize(func, cache=None, key=None, ttl=None):
     if cache is None:
         cache = {}
 
-    expire_at = {'value': time.time() + ttl}
+    if ttl is not None:
+        expire_at = {'value': time.time() + ttl}
 
     try:
         spec = inspect.getargspec(func)
@@ -273,7 +274,7 @@ def memoize(func, cache=None, key=None, ttl=None):
         is_unary = False
 
     def memof(*args, **kwargs):
-        if time.time() > expire_at['value']:
+        if ttl is not None and time.time() > expire_at['value']:
             cache.clear()
             expire_at['value'] = time.time() + ttl
 
