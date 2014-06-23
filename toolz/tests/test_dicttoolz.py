@@ -1,12 +1,16 @@
 from toolz.utils import raises
 from toolz.dicttoolz import (merge, merge_with, valmap, keymap, update_in,
-                             assoc, keyfilter, valfilter)
+                             assoc, get_in, keyfilter, valfilter)
 
 
 inc = lambda x: x + 1
 
 
 iseven = lambda i: i % 2 == 0
+
+
+class C():
+    pass
 
 
 def test_merge():
@@ -63,6 +67,19 @@ def test_assoc():
     assoc(d, 'x', 2)
     assert d is oldd
 
+    # Test object support:
+    c = C()
+    assert assoc(c, "a", 1).__dict__ == {"a": 1}
+    c.a = 1
+    assert assoc(c, "a", 3).__dict__ == {"a": 3}
+    assert assoc(c, "b", 3).__dict__ == {"a": 1, "b": 3}
+
+    # Verify immutability:
+    o = C()
+    o.x = 1
+    assoc(o, 'x', 2)
+    assert o.x == 1
+
 
 def test_update_in():
     assert update_in({"a": 0}, ["a"], inc) == {"a": 1}
@@ -85,3 +102,48 @@ def test_update_in():
     oldd = d
     update_in(d, ['x'], inc)
     assert d is oldd
+
+    # Test object support:
+    c = C()
+    c.a = 0
+    assert update_in(c, ["a"], inc).__dict__ == {"a": 1}
+    c = C()
+    c.a = 0
+    c.b = 1
+    assert update_in(c, ["b"], str).__dict__ == {"a": 0, "b": "1"}
+    v = C()
+    v.a = 0
+    c = C()
+    c.t = 1
+    c.v = v
+    assert update_in(c, ["v", "a"], inc).v.__dict__ == {"a": 1}
+
+    # Handle one missing key.
+    c = C()
+    assert update_in(c, ["z"], str, None).__dict__ == {"z": "None"}
+    assert update_in(c, ["z"], inc, 0).__dict__ == {"z": 1}
+    assert update_in(c, ["z"], lambda x: x + "ar",
+                         default="b").__dict__ == {"z": "bar"}
+
+    # Allow AttributeError to be thrown if more than one missing key,
+    # because we don't know what type of object to create for nesting.
+    assert raises(AttributeError,
+                  lambda: update_in(c, ["y", "z"], inc, default=0))
+
+    # Verify immutability:
+    o = C()
+    o.x = 1
+    update_in(o, ['x'], inc)
+    assert o.x == 1
+
+
+def test_get_in():
+    # Test object support:
+    o = C()
+    a = C()
+    a.b = 1
+    o.a = a
+    assert get_in(['a', 'b'], o) == 1
+    assert get_in(['a', 'b', 'c'], o, 2) == 2
+    assert raises(AttributeError,
+                  lambda: get_in(['a', 'b', 'c'], o, no_default=True))
