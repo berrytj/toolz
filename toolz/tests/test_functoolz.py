@@ -1,10 +1,11 @@
+import time
+from operator import add, mul, itemgetter
+from functools import partial
+
 from toolz.functoolz import (thread_first, thread_last, memoize, curry,
                              compose, pipe, complement, do, juxt)
 from toolz.functoolz import _num_required_args
-from operator import add, mul, itemgetter
 from toolz.utils import raises
-from functools import partial
-from toolz.compatibility import reduce
 
 
 def iseven(x):
@@ -149,6 +150,30 @@ def test_memoize_key():
 
     assert f(1, 2) == 3
     assert f(1, 3) == 3
+
+
+def test_memoize_ttl():
+    side_effects = []
+
+    @memoize(ttl=60)
+    def f(x):
+        side_effects.append('affected!')
+        return x
+
+    old_get_time = time.time
+    current_time = time.time()
+
+    assert f(1) == 1
+    assert len(side_effects) == 1
+    assert f(1) == 1
+    assert len(side_effects) == 1
+    assert f(2) == 2
+    assert len(side_effects) == 2
+    time.time = lambda: current_time + 100
+    assert f(1) == 1
+    assert len(side_effects) == 3
+
+    time.time = old_get_time
 
 
 def test_curry_simple():
