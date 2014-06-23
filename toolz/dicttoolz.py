@@ -135,6 +135,15 @@ def assoc(d, key, value):
     {'x': 2}
     >>> assoc({'x': 1}, 'y', 3)   # doctest: +SKIP
     {'x': 1, 'y': 3}
+
+    >>> class C():
+    ...     def __init__(self):
+    ...         self.x = 1
+    >>> c = C()
+    >>> assoc(c, 'x', 2).__dict__
+    {'x': 2}
+    >>> assoc(c, 'y', 3).__dict__   # doctest: +SKIP
+    {'x': 1, 'y': 3}
     """
     if isinstance(d, dict):
         return merge(d, {key: value})
@@ -177,6 +186,24 @@ def update_in(d, keys, func, default=None):
     {1: {2: {3: 'bar'}}}
     >>> update_in({1: 'foo'}, [2, 3, 4], inc, 0)
     {1: 'foo', 2: {3: {4: 1}}}
+
+    >>> inc = lambda x: x + 1
+    >>> class Person():
+    ...     def __init__(self, age):
+    ...         self.age = age
+    >>> class Age():
+    ...     def __init__(self, years, days):
+    ...         self.years = years
+    ...         self.days = days
+    >>> alice = Person(Age(30, 100))
+    >>> update_in(alice, ['age', 'days'], inc).age.__dict__
+    {'days': 101, 'years': 30}
+    >>> update_in(alice, ['age', 'hours'], int, default=6.5).age.__dict__
+    {'hours': 6, 'days': 100, 'years': 30}
+    >>> update_in(alice, ['education', 'college'], str, default='CMU')
+    Traceback (most recent call last):
+        ...
+    AttributeError: Person instance has no attribute 'education'
     """
     def get(k, d, default):
         if isinstance(d, dict):
@@ -223,7 +250,25 @@ def get_in(keys, coll, default=None, no_default=False):
     >>> get_in(['y'], {}, no_default=True)  # doctest: +ELLIPSIS
     Traceback (most recent call last):
         ...
-    AttributeError: ... has no attribute 'y'
+    KeyError: 'y'
+
+    >>> class Person():
+    ...     def __init__(self, age):
+    ...         self.age = age
+    >>> class Age():
+    ...     def __init__(self, years, days):
+    ...         self.years = years
+    ...         self.days = days
+    >>> alice = Person(Age(30, 100))
+    >>> get_in(['age', 'days'], alice)
+    100
+    >>> get_in(['age', 'hours'], alice)
+    >>> get_in(['age', 'hours'], alice, 4)
+    4
+    >>> get_in(['occupation'], alice, no_default=True)
+    Traceback (most recent call last):
+        ...
+    AttributeError: Person instance has no attribute 'occupation'
 
     See Also:
         itertoolz.get
